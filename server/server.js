@@ -41,6 +41,10 @@ const Student = mongoose.model(
 app.get("/", (req, res) => {
   res.json({ message: "MERN student server is running!" });
 });
+// API hello theo yeu cau bai Buoi 3
+app.get("/api/hello", (req, res) => {
+  res.json({ message: "Hello from MERN backend!" });
+});
 
 // Lay danh sach sinh vien
 app.get("/api/students", async (req, res) => {
