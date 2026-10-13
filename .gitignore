@@ -1,0 +1,12 @@
+﻿node_modules/
+.env
+**/.env
+dist/
+.git/
+npm-debug.log*
+
+server/Dockerfile.txt
+server/Get-Content
+server/ẽit
+client/src/compose.yaml
+client/src/assets/compose.yaml
