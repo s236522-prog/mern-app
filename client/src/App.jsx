@@ -1,131 +1,202 @@
+
 import { useEffect, useState } from "react";
 import "./App.css";
 
-const API = "http://localhost:5001/api/tasks";
+const API = "http://localhost:5001/api/students";
 
 function App() {
-  const [tasks, setTasks] = useState([]);
-  const [title, setTitle] = useState("");
+  const [students, setStudents] = useState([]);
+  const [form, setForm] = useState({ mssv: "", name: "", email: "" });
+  const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
-  async function loadTasks() {
+  async function loadStudents() {
     try {
       setError("");
       const response = await fetch(API);
-      if (!response.ok) throw new Error("Không tải được công việc");
-      const data = await response.json();
-      setTasks(data);
+      if (!response.ok) throw new Error();
+      setStudents(await response.json());
     } catch {
-      setError("Không thể tải công việc. Hãy kiểm tra server.");
+      setError("Khong tai duoc danh sach sinh vien. Hay kiem tra server.");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadTasks();
+    loadStudents();
   }, []);
 
-  async function addTask(e) {
+  function handleChange(e) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  function resetForm() {
+    setForm({ mssv: "", name: "", email: "" });
+    setEditingId(null);
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (!title.trim()) return;
+    setError("");
+    setMessage("");
+
+    const url = editingId ? `${API}/${editingId}` : API;
 
     try {
-      setError("");
-      const response = await fetch(API, {
-        method: "POST",
+      const response = await fetch(url, {
+        method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify(form),
       });
 
-      if (!response.ok) throw new Error("Không thêm được công việc");
+      const data = await response.json();
 
-      const newTask = await response.json();
-      setTasks((current) => [newTask, ...current]);
-      setTitle("");
-    } catch {
-      setError("Không thêm được công việc. Hãy kiểm tra server.");
+      if (!response.ok) {
+        throw new Error(data.message || "Khong luu duoc sinh vien");
+      }
+
+      if (editingId) {
+        setStudents((current) =>
+          current.map((student) =>
+            student._id === editingId ? data : student
+          )
+        );
+        setMessage("Cap nhat sinh vien thanh cong!");
+      } else {
+        setStudents((current) => [data, ...current]);
+        setMessage("Them sinh vien thanh cong!");
+      }
+
+      resetForm();
+    } catch (err) {
+      setError(err.message || "Khong ket noi duoc server.");
     }
   }
 
-  async function toggleTask(task) {
+  function editStudent(student) {
+    setEditingId(student._id);
+    setForm({
+      mssv: student.mssv,
+      name: student.name,
+      email: student.email,
+    });
+    setError("");
+    setMessage("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function deleteStudent(id) {
+    if (!window.confirm("Ban co chac muon xoa sinh vien nay?")) return;
+
+    setError("");
+    setMessage("");
+
     try {
-      const response = await fetch(`${API}/${task._id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: !task.completed }),
-      });
+      const response = await fetch(`${API}/${id}`, { method: "DELETE" });
+      const data = await response.json();
 
-      if (!response.ok) throw new Error();
-      const updated = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Khong xoa duoc sinh vien");
+      }
 
-      setTasks((current) =>
-        current.map((item) => item._id === updated._id ? updated : item)
+      setStudents((current) =>
+        current.filter((student) => student._id !== id)
       );
-    } catch {
-      setError("Không cập nhật được công việc.");
-    }
-  }
-
-  async function deleteTask(id) {
-    try {
-      const response = await fetch(`${API}/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error();
-      setTasks((current) => current.filter((task) => task._id !== id));
-    } catch {
-      setError("Không xóa được công việc.");
+      if (editingId === id) resetForm();
+      setMessage("Xoa sinh vien thanh cong!");
+    } catch (err) {
+      setError(err.message || "Khong ket noi duoc server.");
     }
   }
 
   return (
     <main className="container">
-      <h1>My Task Manager</h1>
-      <p>Server: MERN server is running!</p>
+      <h1>QUAN LY SINH VIEN</h1>
+      <p>Ung dung MERN - MongoDB Atlas - Docker</p>
 
-      <form onSubmit={addTask}>
+      <h2>{editingId ? "Cap nhat sinh vien" : "Them sinh vien"}</h2>
+
+      <form onSubmit={handleSubmit}>
         <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Nhập công việc..."
+          name="mssv"
+          value={form.mssv}
+          onChange={handleChange}
+          placeholder="Ma so sinh vien (MSSV)"
+          required
         />
-        <button type="submit">Thêm</button>
+        <input
+          name="name"
+          value={form.name}
+          onChange={handleChange}
+          placeholder="Ho va ten"
+          required
+        />
+        <input
+          name="email"
+          type="email"
+          value={form.email}
+          onChange={handleChange}
+          placeholder="Email"
+          required
+        />
+        <button type="submit">
+          {editingId ? "Luu thay doi" : "Them sinh vien"}
+        </button>
+        {editingId && (
+          <button type="button" onClick={resetForm}>
+            Huy sua
+          </button>
+        )}
       </form>
 
-      <h2>Danh sách công việc</h2>
-
       {error && <p role="alert">{error}</p>}
+      {message && <p>{message}</p>}
+
+      <h2>Danh sach sinh vien ({students.length})</h2>
+
       {loading ? (
-        <p>Đang tải công việc...</p>
-      ) : tasks.length === 0 ? (
-        <p>Bạn chưa có công việc nào</p>
+        <p>Dang tai du lieu...</p>
+      ) : students.length === 0 ? (
+        <p>Chua co sinh vien nao. Hay them sinh vien dau tien.</p>
       ) : (
-        <ul>
-          {tasks.map((task) => (
-            <li key={task._id}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={task.completed}
-                  onChange={() => toggleTask(task)}
-                />
-                <span
-                  style={{
-                    textDecoration: task.completed ? "line-through" : "none",
-                  }}
-                >
-                  {task.title}
-                </span>
-              </label>
-              <button type="button" onClick={() => deleteTask(task._id)}>
-                Xóa
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>MSSV</th>
+                <th>Ho va ten</th>
+                <th>Email</th>
+                <th>Thao tac</th>
+              </tr>
+            </thead>
+            <tbody>
+              {students.map((student) => (
+                <tr key={student._id}>
+                  <td>{student.mssv}</td>
+                  <td>{student.name}</td>
+                  <td>{student.email}</td>
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => editStudent(student)}
+                    >
+                      Sua
+                    </button>{" "}
+                    <button
+                      type="button"
+                      onClick={() => deleteStudent(student._id)}
+                    >
+                      Xoa
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </main>
   );

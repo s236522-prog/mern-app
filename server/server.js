@@ -9,99 +9,143 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Model công việc
-const Task = mongoose.model(
-  "Task",
-  new mongoose.Schema({
-    title: {
-      type: String,
-      required: true,
-      trim: true,
+// Model sinh vien
+const Student = mongoose.model(
+  "Student",
+  new mongoose.Schema(
+    {
+      mssv: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+      },
+      name: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      email: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+        lowercase: true,
+      },
     },
-    completed: {
-      type: Boolean,
-      default: false,
-    },
-  })
+    { timestamps: true }
+  )
 );
 
-// Kiểm tra server
+// Kiem tra server
 app.get("/", (req, res) => {
-  res.json({ message: "MERN server is running!" });
+  res.json({ message: "MERN student server is running!" });
 });
 
-// Lấy danh sách công việc
-app.get("/api/tasks", async (req, res) => {
+// Lay danh sach sinh vien
+app.get("/api/students", async (req, res) => {
   try {
-    const tasks = await Task.find().sort({ _id: -1 });
-    res.json(tasks);
+    const students = await Student.find().sort({ _id: -1 });
+    res.json(students);
   } catch (error) {
-    res.status(500).json({ message: "Không lấy được công việc" });
+    res.status(500).json({ message: "Khong lay duoc danh sach sinh vien" });
   }
 });
 
-// Thêm công việc
-app.post("/api/tasks", async (req, res) => {
+// Them sinh vien
+app.post("/api/students", async (req, res) => {
   try {
-    const title = req.body.title?.trim();
+    const { mssv, name, email } = req.body;
 
-    if (!title) {
+    if (!mssv?.trim() || !name?.trim() || !email?.trim()) {
       return res.status(400).json({
-        message: "Tên công việc không được để trống",
+        message: "Vui long nhap MSSV, ho ten va email",
       });
     }
 
-    const task = await Task.create({ title });
-    res.status(201).json(task);
+    const student = await Student.create({
+      mssv: mssv.trim(),
+      name: name.trim(),
+      email: email.trim(),
+    });
+
+    res.status(201).json(student);
   } catch (error) {
-    res.status(500).json({ message: "Không thêm được công việc" });
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: "MSSV hoac email da ton tai",
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: "Thong tin sinh vien khong hop le" });
+    }
+
+    res.status(500).json({ message: "Khong them duoc sinh vien" });
   }
 });
 
-// Đánh dấu hoàn thành
-app.patch("/api/tasks/:id", async (req, res) => {
+// Sua thong tin sinh vien
+app.put("/api/students/:id", async (req, res) => {
   try {
-    const task = await Task.findByIdAndUpdate(
+    const { mssv, name, email } = req.body;
+
+    if (!mssv?.trim() || !name?.trim() || !email?.trim()) {
+      return res.status(400).json({
+        message: "Vui long nhap MSSV, ho ten va email",
+      });
+    }
+
+    const student = await Student.findByIdAndUpdate(
       req.params.id,
-      { completed: req.body.completed },
+      {
+        mssv: mssv.trim(),
+        name: name.trim(),
+        email: email.trim(),
+      },
       { new: true, runValidators: true }
     );
 
-    if (!task) {
-      return res.status(404).json({ message: "Không tìm thấy công việc" });
+    if (!student) {
+      return res.status(404).json({ message: "Khong tim thay sinh vien" });
     }
 
-    res.json(task);
+    res.json(student);
   } catch (error) {
-    res.status(400).json({ message: "ID công việc không hợp lệ" });
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: "MSSV hoac email da ton tai",
+      });
+    }
+
+    res.status(400).json({ message: "Khong sua duoc sinh vien" });
   }
 });
 
-// Xóa công việc
-app.delete("/api/tasks/:id", async (req, res) => {
+// Xoa sinh vien
+app.delete("/api/students/:id", async (req, res) => {
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    const student = await Student.findByIdAndDelete(req.params.id);
 
-    if (!task) {
-      return res.status(404).json({ message: "Không tìm thấy công việc" });
+    if (!student) {
+      return res.status(404).json({ message: "Khong tim thay sinh vien" });
     }
 
-    res.json({ message: "Đã xóa công việc" });
+    res.json({ message: "Da xoa sinh vien" });
   } catch (error) {
-    res.status(400).json({ message: "Không xóa được công việc" });
+    res.status(400).json({ message: "ID sinh vien khong hop le" });
   }
 });
 
-// Kết nối database trước khi mở server
+// Ket noi MongoDB Atlas
 const PORT = 5000;
 
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("MongoDB connected successfully!");
-
-    app.listen(PORT, () => {
-      console.log(`Server is running at http://localhost:${PORT}`);
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server is running on port ${PORT}`);
     });
   })
   .catch((error) => {
