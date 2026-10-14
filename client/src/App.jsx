@@ -1,4 +1,4 @@
-
+```jsx
 import { useEffect, useState } from "react";
 import "./App.css";
 
@@ -95,7 +95,9 @@ function App() {
     setMessage("");
 
     try {
-      const response = await fetch(`${API}/${id}`, { method: "DELETE" });
+      const response = await fetch(`${API}/${id}`, {
+        method: "DELETE",
+      });
       const data = await response.json();
 
       if (!response.ok) {
@@ -105,7 +107,9 @@ function App() {
       setStudents((current) =>
         current.filter((student) => student._id !== id)
       );
+
       if (editingId === id) resetForm();
+
       setMessage("Xoa sinh vien thanh cong!");
     } catch (err) {
       setError(err.message || "Khong ket noi duoc server.");
@@ -114,8 +118,8 @@ function App() {
 
   return (
     <main className="container">
-      <h1>QUAN LY SINH VIEN</h1>
-      <p>Ung dung MERN - MongoDB Atlas - Docker</p>
+      <h1>QUAN LY SINH VIEN - VERSION 2.0</h1>
+      <p>Ung dung MERN - MongoDB Atlas - Docker | Phien ban 2.0</p>
 
       <h2>{editingId ? "Cap nhat sinh vien" : "Them sinh vien"}</h2>
 
@@ -127,6 +131,7 @@ function App() {
           placeholder="Ma so sinh vien (MSSV)"
           required
         />
+
         <input
           name="name"
           value={form.name}
@@ -134,6 +139,7 @@ function App() {
           placeholder="Ho va ten"
           required
         />
+
         <input
           name="email"
           type="email"
@@ -142,9 +148,11 @@ function App() {
           placeholder="Email"
           required
         />
+
         <button type="submit">
           {editingId ? "Luu thay doi" : "Them sinh vien"}
         </button>
+
         {editingId && (
           <button type="button" onClick={resetForm}>
             Huy sua
@@ -172,6 +180,7 @@ function App() {
                 <th>Thao tac</th>
               </tr>
             </thead>
+
             <tbody>
               {students.map((student) => (
                 <tr key={student._id}>
@@ -185,6 +194,7 @@ function App() {
                     >
                       Sua
                     </button>{" "}
+
                     <button
                       type="button"
                       onClick={() => deleteStudent(student._id)}
@@ -203,3 +213,4 @@ function App() {
 }
 
 export default App;
+```
